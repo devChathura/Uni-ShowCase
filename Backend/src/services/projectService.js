@@ -2,6 +2,17 @@ const Project = require('../models/Project');
 const eventEmitter = require('../events/emitters');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 
+const validateUrl = (urlStr) => {
+  if (!urlStr) return '';
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return urlStr;
+    }
+  } catch (err) {}
+  throw new Error('Invalid URL provided. Only http and https protocols are allowed.');
+};
+
 class ProjectService {
   async createProject(studentId, projectData, files, user) {
     let coverImage = '';
@@ -30,8 +41,8 @@ class ProjectService {
       technologiesUsed: technologiesUsed || [],
       coverImage: coverImage || projectData.coverImage || '',
       additionalImages: additionalImages.length > 0 ? additionalImages : (projectData.additionalImages || []),
-      demoUrl: projectData.demoUrl || '',
-      gitRepoUrl: projectData.gitRepoUrl || '',
+      demoUrl: validateUrl(projectData.demoUrl),
+      gitRepoUrl: validateUrl(projectData.gitRepoUrl),
       isPublic: projectData.isPublic === 'true' || projectData.isPublic === true
     });
 
@@ -172,8 +183,8 @@ class ProjectService {
     project.technologiesUsed = technologiesUsed !== undefined ? technologiesUsed : project.technologiesUsed;
     project.coverImage = coverImage;
     project.additionalImages = additionalImages;
-    project.demoUrl = updateData.demoUrl !== undefined ? updateData.demoUrl : project.demoUrl;
-    project.gitRepoUrl = updateData.gitRepoUrl !== undefined ? updateData.gitRepoUrl : project.gitRepoUrl;
+    project.demoUrl = updateData.demoUrl !== undefined ? validateUrl(updateData.demoUrl) : project.demoUrl;
+    project.gitRepoUrl = updateData.gitRepoUrl !== undefined ? validateUrl(updateData.gitRepoUrl) : project.gitRepoUrl;
     project.isPublic = updateData.isPublic !== undefined ? (updateData.isPublic === 'true' || updateData.isPublic === true) : project.isPublic;
 
     await project.save();

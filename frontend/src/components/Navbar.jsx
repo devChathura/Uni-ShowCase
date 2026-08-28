@@ -5,10 +5,12 @@ import { motion } from 'framer-motion';
 
 import { useAuth } from '../context/AuthContext';
 import { AnimatePresence } from 'framer-motion';
+import ProfileModal from './ProfileModal';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
   const { token, user, logout } = useAuth();
 
@@ -69,6 +71,12 @@ const Navbar = () => {
                 Hi, <strong className="text-zinc-200">{user?.name}</strong>
               </span>
               <button 
+                onClick={() => setIsProfileOpen(true)}
+                className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-white transition-colors cursor-pointer bg-zinc-900 border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-full"
+              >
+                <User className="w-4 h-4" /> Profile
+              </button>
+              <button 
                 onClick={handleLogoutClick}
                 className="flex items-center gap-1.5 text-sm font-medium text-red-400 hover:text-red-350 transition-colors cursor-pointer bg-zinc-900 border border-zinc-800 hover:border-red-950 px-3 py-1.5 rounded-full"
               >
@@ -122,6 +130,15 @@ const Navbar = () => {
           {token ? (
             <div className="flex flex-col space-y-3">
               <span className="text-sm text-zinc-400">Logged in as {user?.name} ({user?.role})</span>
+              <button 
+                onClick={() => {
+                  setIsProfileOpen(true);
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 text-left"
+              >
+                <User className="w-4 h-4" /> Profile
+              </button>
               <button 
                 onClick={() => {
                   handleLogoutClick();
@@ -179,6 +196,8 @@ const Navbar = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </>
   );
 };

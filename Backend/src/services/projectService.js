@@ -1,6 +1,19 @@
 const Project = require('../models/Project');
 const eventEmitter = require('../events/emitters');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
+const escapeRegex = require('../utils/escapeRegex');
+const getPaginationOptions = require('../utils/pagination');
+
+const validateUrl = (urlStr) => {
+  if (!urlStr) return '';
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return urlStr;
+    }
+  } catch (err) {}
+  throw new Error('Invalid URL provided. Only http and https protocols are allowed.');
+};
 
 class ProjectService {
   async createProject(studentId, projectData, files, user) {
@@ -30,8 +43,8 @@ class ProjectService {
       technologiesUsed: technologiesUsed || [],
       coverImage: coverImage || projectData.coverImage || '',
       additionalImages: additionalImages.length > 0 ? additionalImages : (projectData.additionalImages || []),
-      demoUrl: projectData.demoUrl || '',
-      gitRepoUrl: projectData.gitRepoUrl || '',
+      demoUrl: validateUrl(projectData.demoUrl),
+      gitRepoUrl: validateUrl(projectData.gitRepoUrl),
       isPublic: projectData.isPublic === 'true' || projectData.isPublic === true
     });
 
@@ -56,15 +69,16 @@ class ProjectService {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search.substring(0, 100));
       query.$and = query.$and || [];
       query.$and.push({
-        $or: [{ title: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }]
+        $or: [{ title: { $regex: safeSearch, $options: 'i' } }, { description: { $regex: safeSearch, $options: 'i' } }]
       });
     }
 
     if (technologies) {
       const techArray = Array.isArray(technologies) ? technologies : technologies.split(',').map(t => t.trim());
-      query.technologiesUsed = { $in: techArray.map(t => new RegExp(t, 'i')) };
+      query.technologiesUsed = { $in: techArray.map(t => new RegExp(escapeRegex(t.substring(0, 50)), 'i')) };
     }
 
     // Followed only filter (for Recruiters)
@@ -76,9 +90,7 @@ class ProjectService {
       query.studentId = { $in: studentIds };
     }
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const total = await Project.countDocuments(query);
     const projects = await Project.find(query)
@@ -172,8 +184,8 @@ class ProjectService {
     project.technologiesUsed = technologiesUsed !== undefined ? technologiesUsed : project.technologiesUsed;
     project.coverImage = coverImage;
     project.additionalImages = additionalImages;
-    project.demoUrl = updateData.demoUrl !== undefined ? updateData.demoUrl : project.demoUrl;
-    project.gitRepoUrl = updateData.gitRepoUrl !== undefined ? updateData.gitRepoUrl : project.gitRepoUrl;
+    project.demoUrl = updateData.demoUrl !== undefined ? validateUrl(updateData.demoUrl) : project.demoUrl;
+    project.gitRepoUrl = updateData.gitRepoUrl !== undefined ? validateUrl(updateData.gitRepoUrl) : project.gitRepoUrl;
     project.isPublic = updateData.isPublic !== undefined ? (updateData.isPublic === 'true' || updateData.isPublic === true) : project.isPublic;
 
     await project.save();
@@ -182,9 +194,7 @@ class ProjectService {
 
   async getLikedProjects(user, queryParams) {
     const { page, limit } = queryParams;
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const Like = require('../models/Like');
     const userId = user._id || user.id;

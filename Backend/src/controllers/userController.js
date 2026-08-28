@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const Project = require('../models/Project');
+const escapeRegex = require('../utils/escapeRegex');
+const getPaginationOptions = require('../utils/pagination');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -7,9 +9,10 @@ const getAllUsers = async (req, res) => {
     const query = {};
 
     if (search) {
+      const safeSearch = escapeRegex(search.substring(0, 100));
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -30,9 +33,7 @@ const getAllUsers = async (req, res) => {
       query._id = { $in: studentIds };
     }
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const total = await User.countDocuments(query);
     const users = await User.find(query)
@@ -136,8 +137,51 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const updateMe = async (req, res) => {
+  try {
+    const { contactNumber, organization } = req.body;
+    
+    // Simple contact number validation (optional but if provided should be reasonable)
+    if (contactNumber !== undefined && contactNumber.trim() !== '') {
+      const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+      if (!phoneRegex.test(contactNumber)) {
+        return res.status(400).json({ message: 'Invalid contact number format' });
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { 
+        ...(contactNumber !== undefined && { contactNumber: contactNumber.trim() }),
+        ...(organization !== undefined && { organization: organization.trim() })
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Profile updated successfully', user: updatedUser });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   updateUser,
-  deleteUser
+  deleteUser,
+  getMe,
+  updateMe
 };

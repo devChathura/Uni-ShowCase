@@ -22,23 +22,23 @@ connectDB();
 initEventListeners();
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
-let frontendUrl = process.env.FRONTEND_URL || '';
-if (frontendUrl.endsWith('/')) {
-  frontendUrl = frontendUrl.slice(0, -1);
-}
-
-const allowedOrigins = [
-  frontendUrl,
+let allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000'
-].filter(Boolean);
+];
+
+if (process.env.ALLOWED_ORIGINS) {
+  const envOrigins = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().replace(/\/$/, ''));
+  allowedOrigins = [...allowedOrigins, ...envOrigins];
+} else if (process.env.FRONTEND_URL) {
+  let frontendUrl = process.env.FRONTEND_URL.trim();
+  if (frontendUrl.endsWith('/')) frontendUrl = frontendUrl.slice(0, -1);
+  allowedOrigins.push(frontendUrl);
+}
 
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
-  // Dynamically allow Vercel previews and deployment domains
-  if (origin.endsWith('.vercel.app')) return true;
-  return false;
+  return allowedOrigins.includes(origin);
 };
 
 app.use(cors({

@@ -2,6 +2,7 @@ const Project = require('../models/Project');
 const eventEmitter = require('../events/emitters');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
 const escapeRegex = require('../utils/escapeRegex');
+const getPaginationOptions = require('../utils/pagination');
 
 const validateUrl = (urlStr) => {
   if (!urlStr) return '';
@@ -89,9 +90,7 @@ class ProjectService {
       query.studentId = { $in: studentIds };
     }
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const total = await Project.countDocuments(query);
     const projects = await Project.find(query)
@@ -195,9 +194,7 @@ class ProjectService {
 
   async getLikedProjects(user, queryParams) {
     const { page, limit } = queryParams;
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const Like = require('../models/Like');
     const userId = user._id || user.id;

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Project = require('../models/Project');
 const escapeRegex = require('../utils/escapeRegex');
+const getPaginationOptions = require('../utils/pagination');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -32,9 +33,7 @@ const getAllUsers = async (req, res) => {
       query._id = { $in: studentIds };
     }
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 10);
 
     const total = await User.countDocuments(query);
     const users = await User.find(query)

@@ -1,12 +1,11 @@
 const Notification = require('../models/Notification');
+const getPaginationOptions = require('../utils/pagination');
 
 class NotificationService {
   async getUserNotifications(user, queryParams = {}) {
     const userId = user._id || user.id;
     const { page, limit } = queryParams;
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
-    const skip = (pageNum - 1) * limitNum;
+    const { pageNum, limitNum, skip } = getPaginationOptions(page, limit, 20);
 
     const total = await Notification.countDocuments({ userId });
     const unreadCount = await Notification.countDocuments({ userId, isRead: false });

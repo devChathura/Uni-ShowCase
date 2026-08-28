@@ -1,6 +1,7 @@
 const Project = require('../models/Project');
 const eventEmitter = require('../events/emitters');
 const { uploadBufferToCloudinary } = require('../utils/cloudinary');
+const escapeRegex = require('../utils/escapeRegex');
 
 const validateUrl = (urlStr) => {
   if (!urlStr) return '';
@@ -67,15 +68,16 @@ class ProjectService {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search.substring(0, 100));
       query.$and = query.$and || [];
       query.$and.push({
-        $or: [{ title: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }]
+        $or: [{ title: { $regex: safeSearch, $options: 'i' } }, { description: { $regex: safeSearch, $options: 'i' } }]
       });
     }
 
     if (technologies) {
       const techArray = Array.isArray(technologies) ? technologies : technologies.split(',').map(t => t.trim());
-      query.technologiesUsed = { $in: techArray.map(t => new RegExp(t, 'i')) };
+      query.technologiesUsed = { $in: techArray.map(t => new RegExp(escapeRegex(t.substring(0, 50)), 'i')) };
     }
 
     // Followed only filter (for Recruiters)

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Project = require('../models/Project');
+const escapeRegex = require('../utils/escapeRegex');
 
 const getAllUsers = async (req, res) => {
   try {
@@ -7,9 +8,10 @@ const getAllUsers = async (req, res) => {
     const query = {};
 
     if (search) {
+      const safeSearch = escapeRegex(search.substring(0, 100));
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
